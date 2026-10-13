@@ -1,0 +1,23 @@
+<!DOCTYPE html><html><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Admin Dashboard</title>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<style>body{background:#0a0a0a;color:white;font-family:sans-serif;padding:15px} .card{background:#151515;padding:15px;border-radius:12px;margin:10px 0} button{padding:6px 10px;margin:2px;border:none;border-radius:6px} .green{background:#00ff88} .red{background:#ff4444;color:white}</style>
+</head><body><h2>ADMIN - TDFS MARKETS (LIVE)</h2>
+<div id="clients"></div><h3>All Transactions</h3><div id="txs"></div>
+<script>
+const supabaseClient = supabase.createClient('https://dtuxgsuuvfzunjavogts.supabase.co','eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImR0dXhnc3V1dmZ6dW5qYXZvZ3RzIiwicm9sZSI6ImFub24iLCJpYXQiOjE3OTE5MjM3MDcsImV4cCI6MjEwNzQ5OTcwN30.Pqwbg8Dl6gy0jXUoKsFSuQUgMqxZdKrPZTeP5ETtR7Y')
+async function load(){
+ const {data:clients}=await supabaseClient.from('profiles').select('*').order('created_at',{ascending:false});
+ document.getElementById('clients').innerHTML=clients.map(c=>`<div class="card">${c.email} | Role: ${c.role} | Bal: $${c.balance} | Invested: $${c.total_invested}<br>
+ <input id="b-${c.id}" placeholder="New balance" style="width:100px"><button class="green" onclick="updateBal('${c.id}')">Update Balance</button>
+ <button class="green" onclick="makeAdmin('${c.id}')">Make Admin</button></div>`).join('');
+ const {data:txs}=await supabaseClient.from('transactions').select('*,profiles(email)').order('created_at',{ascending:false}).limit(50);
+ document.getElementById('txs').innerHTML=txs.map(t=>`<div class="card">${t.profiles?.email} | ${t.type} | $${t.amount} | ${t.status} <button class="green" onclick="approve('${t.id}')">Approve</button><button class="red" onclick="reject('${t.id}')">Reject</button></div>`).join('');
+}
+async function updateBal(id){ const v=document.getElementById('b-'+id).value; await supabaseClient.from('profiles').update({balance:parseFloat(v)}).eq('id',id); load(); }
+async function makeAdmin(id){ await supabaseClient.from('profiles').update({role:'admin'}).eq('id',id); load(); }
+async function approve(id){ await supabaseClient.from('transactions').update({status:'approved'}).eq('id',id); load(); }
+async function reject(id){ await supabaseClient.from('transactions').update({status:'rejected'}).eq('id',id); load(); }
+load();
+supabaseClient.channel('admin-live').on('postgres_changes',{event:'*',schema:'public',table:'profiles'},load).on('postgres_changes',{event:'*',schema:'public',table:'transactions'},load).subscribe();
+</script></body></html>
