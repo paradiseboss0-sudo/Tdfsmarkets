@@ -1,0 +1,47 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Admin - TDFS MARKETS</title>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<style>
+body{background:#0a0a0a;color:white;font-family:Arial;padding:12px}
+h2{color:#00ff88;border-bottom:2px solid #00ff88;padding-bottom:10px}
+.card{background:#1a1a1a;padding:15px;margin:15px 0;border-radius:10px;border:1px solid #333}
+.green{background:#00ff88;color:black;padding:8px 14px;border:none;border-radius:6px;font-weight:bold;cursor:pointer;margin:3px}
+.red{background:#ff4444;color:white;padding:8px 14px;border:none;border-radius:6px;font-weight:bold;cursor:pointer;margin:3px}
+input{padding:8px;border-radius:6px;background:#222;color:white;border:1px solid #555}
+.row{padding:10px;border-bottom:1px solid #333;display:flex;justify-content:space-between;flex-wrap:wrap;gap:8px}
+</style>
+</head>
+<body>
+<h2>ADMIN - TDFS MARKETS (LIVE) 🔥</h2>
+<div class="card"><h3>👥 Clients</h3><div id="clients">Loading... If blank, check Supabase keys</div></div>
+<div class="card"><h3>💰 Transactions</h3><div id="txs">Loading...</div></div>
+
+<script>
+// === PUT YOUR SUPABASE DETAILS HERE ===
+const SUPABASE_URL = 'https://YOUR_PROJECT_ID.supabase.co';
+const SUPABASE_KEY = 'YOUR_ANON_KEY_HERE';
+
+const supabaseClient = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
+
+async function load(){
+ try{
+  const {data:clients, error:err1} = await supabaseClient.from('profiles').select('*');
+  if(err1) throw err1;
+  document.getElementById('clients').innerHTML = clients?.length ? clients.map(c=>`
+   <div class="row">
+    <span>${c.email||c.id}<br><b>Balance: $${c.balance||0}</b></span>
+    <span>
+     <input id="b-${c.id}" placeholder="$" style="width:70px">
+     <button class="green" onclick="updateBal('${c.id}')">Update</button>
+     <button class="green" onclick="makeAdmin('${c.id}')">Make Admin</button>
+    </span>
+   </div>`).join('') : 'No clients yet';
+
+  const {data:txs} = await supabaseClient.from('transactions').select('*').order('created_at',{ascending:false}).limit(100);
+  document.getElementById('txs').innerHTML = txs?.length ? txs.map(t=>`
+   <div class="row">
+    <span>${(t.user_id||'').slice(0,15)} -
